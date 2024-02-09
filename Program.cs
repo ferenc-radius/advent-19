@@ -2,25 +2,34 @@
 var watch = new System.Diagnostics.Stopwatch();
 watch.Start();
 
-//const string inputFile = "configurations/example.flow";
+// const string inputFile = "configurations/example.flow";
 const string inputFile = "configurations/input.flow";
-var fileParser = new FlowFileParser(inputFile);
-Console.WriteLine("available functions: " + fileParser.Functions.Count);
+var (tokensList, parts) = FlowFileParser.Parse(inputFile);
+
+var functions = new Dictionary<string, FlowFunction>();
+foreach (var tokens in tokensList)
+{
+    var function = new FlowFunction(tokens);
+    functions.Add(function.GetFunctionName(), function);
+}
 
 var sum = 0;
-foreach (var part in fileParser.Parts)
+foreach (var part in parts)
 {
+#if DEBUG
     Console.Write(part + ": ");
-    var workflow = new WorkFlowFacade(fileParser.Functions, part);
+#endif
+    var workflow = new WorkFlowFacade(functions, part);
     var result = workflow.Execute();
     if (result)
     {
         sum += part.Sum();
     }
-    
+#if DEBUG
     Console.WriteLine(result ? "A" : "R");
+#endif
 }
 
-Console.WriteLine("Result: " + sum);
+Console.WriteLine($"Result: {sum}");
 watch.Stop();
 Console.WriteLine($"Execution Time: {watch.ElapsedMilliseconds} ms");

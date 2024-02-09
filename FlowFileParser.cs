@@ -1,61 +1,53 @@
+using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
+using advent_19.Tokenizer;
 
 namespace advent_19;
 
-public class FlowFileParser
+public static class FlowFileParser
 {
-    public Dictionary<string, FlowFunction> Functions { get; private set; }
-    public List<Part> Parts { get; private set; }
-
-    public FlowFileParser(string filePath)
+    public static ValueTuple<List<Stack<Token>>, List<Part>> Parse(string filePath)
     {
-        Functions = new Dictionary<string, FlowFunction>();
-        Parts = new List<Part>();
         var lines = File.ReadAllLines(filePath);
-        var rowIndex = ParseFlowFunctions(lines);
-        ParseParts(lines, rowIndex);
+        var offset = Array.FindIndex(lines, string.IsNullOrWhiteSpace);
+        var tokens = ParseWorkflows(lines, offset);
+        var parts = ParseParts(lines, offset);
+ 
+        return new ValueTuple<List<Stack<Token>>, List<Part>>(tokens.ToList(), parts.ToList());
     }
 
-    private int ParseFlowFunctions(string[] lines)
+    private static List<Part> ParseParts(string[] lines, int offset)
     {
-        Functions = new Dictionary<string, FlowFunction>();
-
-        foreach (var (line, rowIndex) in lines.Select((value, i) => (value, i)))
-        {
-            if (!string.IsNullOrWhiteSpace(line))
-            {
-                var tokens = Tokenizer.Tokenizer.Tokenize(line);
-                var flowFunction = new FlowFunction(tokens);
-                Functions.Add(flowFunction.GetFunctionName(), flowFunction);
-            }
-            else
-            {
-                // return index where the parts start.
-                return rowIndex + 1;
-            }
-        }
-
-        return 0;
-    }
-
-    private void ParseParts(string[] lines, int offset)
-    {
-        Parts = new List<Part>();
-        foreach (var line in lines.Skip(offset))
+        var parts = new ConcurrentBag<Part>();
+        Parallel.ForEach( lines.Skip(offset+1), (line) =>
         {
             var match = Regex.Match(line, "x=(\\d+)?,m=(\\d+),a=(\\d+),s=(\\d+)");
             if (!match.Success)
             {
                 throw new Exception("Failed to parse parts");
             }
-            
+
             var x = Convert.ToInt32(match.Groups[1].Value);
             var m = Convert.ToInt32(match.Groups[2].Value);
             var a = Convert.ToInt32(match.Groups[3].Value);
             var s = Convert.ToInt32(match.Groups[4].Value);
-            Parts.Add(new Part(x, m, a, s));
-        }
+            parts.Add(new Part(x, m, a, s));
+        });
+
+        return parts.ToList();
     }
 
+    private static IEnumerable<Stack<Token>> ParseWorkflows(string[] lines, int offset)
+    {
+        var tokens = new List<Stack<Token>>();
+        Parallel.ForEach( lines.Take(offset), (line) =>
+        {
+            lock (tokens)
+            {
+                tokens.Add(Tokenizer.Tokenizer.Tokenize(line));
+            }
+        });
     
+        return tokens;
+    }
 }

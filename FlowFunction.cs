@@ -1,12 +1,19 @@
+using System.Diagnostics;
 using advent_19.Tokenizer;
 
 namespace advent_19;
 
 public class FlowFunction(Stack<Token> tokenStack)
 {
-    public bool Execute(string name, Part p, Dictionary<string, FlowFunction> functions)
+    [Conditional("DEBUG")]
+    private void Debug(string name)
     {
         Console.Write(name + " -> ");
+    }
+    
+    public bool Execute(string name, Part p, Dictionary<string, FlowFunction> functions)
+    {
+        Debug(name);
         var clonedStack = new Stack<Token>(new Stack<Token>(tokenStack));
         
         while (clonedStack.Count > 0)
@@ -18,7 +25,13 @@ public class FlowFunction(Stack<Token> tokenStack)
                 case TokenType.PartM:
                 case TokenType.PartA:
                 case TokenType.PartX:
-                    ExecutePart(token.Type, p, clonedStack);
+                    var success = ExecutePart(token.Type, p, clonedStack);
+                    // if value is false we drop the if statement and condition.
+                    if (!success)
+                    {
+                        clonedStack.Pop();
+                        clonedStack.Pop();
+                    }
                     break;
 
                 case TokenType.If:
@@ -42,7 +55,7 @@ public class FlowFunction(Stack<Token> tokenStack)
         return false;
     }
 
-    private static void ExecutePart(TokenType tokenType, Part part, Stack<Token> clonedStack)
+    private static bool ExecutePart(TokenType tokenType, Part part, Stack<Token> clonedStack)
     {
         var partValue = tokenType switch
         {
@@ -53,14 +66,7 @@ public class FlowFunction(Stack<Token> tokenStack)
             _ => throw new ArgumentOutOfRangeException()
         };
 
-        var compare = Compare(clonedStack.Pop(), clonedStack.Pop(), partValue);
-        
-        // if value is false we drop the if statement and condition.
-        if (!compare)
-        {
-            clonedStack.Pop();
-            clonedStack.Pop();
-        }
+        return Compare(clonedStack.Pop(), clonedStack.Pop(), partValue);
     }
     
     private static bool Compare(Token compare, Token value, int var)
