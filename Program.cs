@@ -1,6 +1,5 @@
 ﻿using advent_19;
 var watch = new System.Diagnostics.Stopwatch();
-            
 watch.Start();
 
 //const string inputFile = "configurations/example.flow";
