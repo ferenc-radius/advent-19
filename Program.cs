@@ -1,4 +1,7 @@
 ﻿using advent_19;
+var watch = new System.Diagnostics.Stopwatch();
+            
+watch.Start();
 
 //const string inputFile = "configurations/example.flow";
 const string inputFile = "configurations/input.flow";
@@ -20,4 +23,5 @@ foreach (var part in fileParser.Parts)
 }
 
 Console.WriteLine("Result: " + sum);
-
+watch.Stop();
+Console.WriteLine($"Execution Time: {watch.ElapsedMilliseconds} ms");
