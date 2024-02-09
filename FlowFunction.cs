@@ -5,12 +5,6 @@ namespace advent_19;
 
 public class FlowFunction(Stack<Token> tokenStack)
 {
-    [Conditional("DEBUG")]
-    private void Debug(string name)
-    {
-        Console.Write(name + " -> ");
-    }
-    
     public bool Execute(string name, Part p, Dictionary<string, FlowFunction> functions)
     {
         Debug(name);
@@ -55,7 +49,39 @@ public class FlowFunction(Stack<Token> tokenStack)
         return false;
     }
 
-    private static bool ExecutePart(TokenType tokenType, Part part, Stack<Token> clonedStack)
+    public List<(TokenType, int)> FindValues(TokenType type)
+    {
+        if (type is not (TokenType.PartX or TokenType.PartM or TokenType.PartA or TokenType.PartS))
+        {
+            throw new InvalidOperationException("Invalid part type");
+        }
+        
+        var clonedStack = new Stack<Token>(new Stack<Token>(tokenStack));
+        var values = new List<(TokenType, int)>();
+
+        while (clonedStack.Count > 0)
+        {
+            var token = clonedStack.Pop();
+
+            if (token.Type == type)
+            {
+                var compareToken = clonedStack.Pop();
+                var numberToken = clonedStack.Pop();
+                var toCompare = ToCompare(numberToken);
+
+                values.Add((compareToken.Type, toCompare));
+            }
+        }
+
+        return values;
+    }
+
+    public string GetFunctionName()
+    {
+        return tokenStack.First().Value;
+    }
+
+    private static bool ExecutePart(TokenType tokenType, Part part, Stack<Token> stack)
     {
         var partValue = tokenType switch
         {
@@ -66,27 +92,35 @@ public class FlowFunction(Stack<Token> tokenStack)
             _ => throw new ArgumentOutOfRangeException()
         };
 
-        return Compare(clonedStack.Pop(), clonedStack.Pop(), partValue);
+        return Compare(stack.Pop(), stack.Pop(), partValue);
     }
     
     private static bool Compare(Token compare, Token value, int var)
     {
-        var conversionSuccess = int.TryParse(value.Value, out var toCompare);
-        if (!conversionSuccess)
-        {
-            throw new InvalidCastException("value not a number: " + value);
-        }
-        
+        var toCompare = ToCompare(value);
+
         return compare.Type switch
         {
             TokenType.SmallerThen => var < toCompare,
             TokenType.BiggerThen => var > toCompare,
             _ => throw new InvalidOperationException("Unrecognized token")
         };
-    } 
+    }
 
-    public string GetFunctionName()
+    private static int ToCompare(Token value)
     {
-        return tokenStack.First().Value;
+        var conversionSuccess = int.TryParse(value.Value, out var toCompare);
+        if (!conversionSuccess)
+        {
+            throw new InvalidCastException("value not a number: " + value);
+        }
+
+        return toCompare;
+    }
+
+    [Conditional("DEBUG")]
+    private void Debug(string name)
+    {
+        Console.Write(name + " -> ");
     }
 }

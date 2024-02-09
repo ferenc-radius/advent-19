@@ -1,4 +1,6 @@
 ﻿using advent_19;
+using advent_19.Tokenizer;
+
 var watch = new System.Diagnostics.Stopwatch();
 watch.Start();
 
@@ -31,5 +33,26 @@ foreach (var part in parts)
 }
 
 Console.WriteLine($"Result: {sum}");
+
+void GetNumbers(TokenType tokenType)
+{
+    var numbers = new List<int>();
+    foreach (var tokens in functions.Values.ToList().Select(function => function.FindValues(tokenType)))
+    {
+        foreach (var (_, value) in tokens)
+        {
+            numbers.Add(value);
+        }
+    }
+    numbers.Sort();
+    Console.WriteLine($"Range of {tokenType}: {numbers[0]} -> {numbers[^1]}");
+}
+
+// Part 2
+GetNumbers(TokenType.PartX);
+GetNumbers(TokenType.PartM);
+GetNumbers(TokenType.PartA);
+GetNumbers(TokenType.PartS);
+
 watch.Stop();
 Console.WriteLine($"Execution Time: {watch.ElapsedMilliseconds} ms");

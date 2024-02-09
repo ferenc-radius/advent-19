@@ -46,7 +46,7 @@ public static class Tokenizer
             }
         }
  
-        return CreateStack(tokens);
+        return new Stack<Token>(tokens.AsEnumerable().Reverse());
     }
 
     private static bool TryMatchPattern(StringBuilder input, object pattern, out string value)
@@ -71,10 +71,5 @@ public static class Tokenizer
 
         value = "";
         return false;
-    }
-    
-    private static Stack<Token> CreateStack(List<Token> tokens)
-    {
-        return new Stack<Token>(tokens.AsEnumerable().Reverse());
     }
 }
