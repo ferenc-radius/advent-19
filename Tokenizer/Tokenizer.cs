@@ -19,8 +19,6 @@ public static class Tokenizer
         (TokenType.PartS, "s"),
         (TokenType.Accepted, "A"),
         (TokenType.Rejected, "R"),
-        (TokenType.Start, "{"),
-        (TokenType.Stop, "}")
     ];
 
     public static Stack<(TokenType, string)> Tokenize(string rule)

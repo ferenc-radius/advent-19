@@ -13,7 +13,5 @@ public enum TokenType
     If,
     Else,
     Accepted,
-    Rejected,
-    Start,
-    Stop
+    Rejected
 }
