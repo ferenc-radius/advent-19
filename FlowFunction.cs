@@ -3,23 +3,23 @@ using advent_19.Tokenizer;
 
 namespace advent_19;
 
-public class FlowFunction(Stack<Token> tokenStack)
+public class FlowFunction(Stack<(TokenType, string)> tokenStack)
 {
     public bool Execute(string name, Part p, Dictionary<string, FlowFunction> functions)
     {
         Debug(name);
-        var clonedStack = new Stack<Token>(new Stack<Token>(tokenStack));
+        var clonedStack = new Stack<(TokenType, string)>(new Stack<(TokenType, string)>(tokenStack));
         
         while (clonedStack.Count > 0)
         {
             var token = clonedStack.Pop();
-            switch (token.Type)
+            switch (token.Item1)
             {
                 case TokenType.PartS:
                 case TokenType.PartM:
                 case TokenType.PartA:
                 case TokenType.PartX:
-                    var success = ExecutePart(token.Type, p, clonedStack);
+                    var success = ExecutePart(token.Item1, p, clonedStack);
                     // if value is false we drop the if statement and condition.
                     if (!success)
                     {
@@ -31,10 +31,10 @@ public class FlowFunction(Stack<Token> tokenStack)
                 case TokenType.If:
                 case TokenType.Else:
                     var tokenAhead = clonedStack.Peek();
-                    if (tokenAhead.Type == TokenType.Function)
+                    if (tokenAhead.Item1 == TokenType.Function)
                     {
                         var function = clonedStack.Pop();
-                        return functions[function.Value].Execute(function.Value, p, functions);
+                        return functions[function.Item2].Execute(function.Item2, p, functions);
                     }
                     break;
 
@@ -56,20 +56,20 @@ public class FlowFunction(Stack<Token> tokenStack)
             throw new InvalidOperationException("Invalid part type");
         }
         
-        var clonedStack = new Stack<Token>(new Stack<Token>(tokenStack));
+        var clonedStack = new Stack<(TokenType, string)>(new Stack<(TokenType, string)>(tokenStack));
         var values = new List<(TokenType, int)>();
 
         while (clonedStack.Count > 0)
         {
             var token = clonedStack.Pop();
 
-            if (token.Type == type)
+            if (token.Item1 == type)
             {
                 var compareToken = clonedStack.Pop();
                 var numberToken = clonedStack.Pop();
                 var toCompare = ToCompare(numberToken);
 
-                values.Add((compareToken.Type, toCompare));
+                values.Add((compareToken.Item1, toCompare));
             }
         }
 
@@ -78,10 +78,10 @@ public class FlowFunction(Stack<Token> tokenStack)
 
     public string GetFunctionName()
     {
-        return tokenStack.First().Value;
+        return tokenStack.First().Item2;
     }
 
-    private static bool ExecutePart(TokenType tokenType, Part part, Stack<Token> stack)
+    private static bool ExecutePart(TokenType tokenType, Part part, Stack<(TokenType, string)> stack)
     {
         var partValue = tokenType switch
         {
@@ -95,11 +95,11 @@ public class FlowFunction(Stack<Token> tokenStack)
         return Compare(stack.Pop(), stack.Pop(), partValue);
     }
     
-    private static bool Compare(Token compare, Token value, int var)
+    private static bool Compare((TokenType, string) compare, (TokenType, string) value, int var)
     {
         var toCompare = ToCompare(value);
 
-        return compare.Type switch
+        return compare.Item1 switch
         {
             TokenType.SmallerThen => var < toCompare,
             TokenType.BiggerThen => var > toCompare,
@@ -107,9 +107,9 @@ public class FlowFunction(Stack<Token> tokenStack)
         };
     }
 
-    private static int ToCompare(Token value)
+    private static int ToCompare((TokenType, string) value)
     {
-        var conversionSuccess = int.TryParse(value.Value, out var toCompare);
+        var conversionSuccess = int.TryParse(value.Item2, out var toCompare);
         if (!conversionSuccess)
         {
             throw new InvalidCastException("value not a number: " + value);

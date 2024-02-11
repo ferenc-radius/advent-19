@@ -11,8 +11,8 @@ public static class Tokenizer
         (TokenType.BiggerThen, ">"),
         (TokenType.Else, ","),
         (TokenType.If, ":"),
-        (TokenType.Function, new Regex("^[a-z]{2,3}")),
-        (TokenType.Number, new Regex(@"^\d+")),
+        (TokenType.Function, new Regex("^[a-z]{2,3}", RegexOptions.Compiled)),
+        (TokenType.Number, new Regex(@"^\d+", RegexOptions.Compiled)),
         (TokenType.PartX, "x"),
         (TokenType.PartM, "m"),
         (TokenType.PartA, "a"),
@@ -23,9 +23,9 @@ public static class Tokenizer
         (TokenType.Stop, "}")
     ];
 
-    public static Stack<Token> Tokenize(string rule)
+    public static Stack<(TokenType, string)> Tokenize(string rule)
     {
-        var tokens = new List<Token>();
+        var tokens = new List<(TokenType, string)>();
         var remBuilder = new StringBuilder(rule);
         while (remBuilder.Length > 0)
         {
@@ -34,7 +34,7 @@ public static class Tokenizer
             {
                 if (TryMatchPattern(remBuilder, pattern, out var value))
                 {
-                    tokens.Add(new Token(tokenType, value));
+                    tokens.Add((tokenType, value));
                     foundToken = true;
                     break;
                 }
@@ -46,24 +46,29 @@ public static class Tokenizer
             }
         }
  
-        return new Stack<Token>(tokens.AsEnumerable().Reverse());
+        return new Stack<(TokenType, string)>(tokens.AsEnumerable().Reverse());
     }
 
     private static bool TryMatchPattern(StringBuilder input, object pattern, out string value)
     {
         switch (pattern)
         {
-            case string strPattern when input.ToString().StartsWith(strPattern):
-                value = strPattern;
-                input.Remove(0, strPattern.Length);
-                return true;
+            case string strPattern:
+                if (input.Length >= strPattern.Length && 
+                    input.ToString(0, strPattern.Length) == strPattern)
+                {
+                    value = strPattern;
+                    input.Remove(0, strPattern.Length);
+                    return true;
+                }
+                break;
 
             case Regex regexPattern:
                 var match = regexPattern.Match(input.ToString());
                 if (match.Success)
                 {
-                    value = match.Value.Trim();
-                    input.Remove(0, match.Value.Length);
+                    value = match.Value;
+                    input.Remove(0, match.Length);
                     return true;
                 }
                 break;

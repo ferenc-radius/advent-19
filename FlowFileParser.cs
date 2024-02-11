@@ -1,53 +1,33 @@
-using System.Collections.Concurrent;
-using System.Text.RegularExpressions;
 using advent_19.Tokenizer;
 
 namespace advent_19;
 
 public static class FlowFileParser
 {
-    public static ValueTuple<List<Stack<Token>>, List<Part>> Parse(string filePath)
+    public static ValueTuple<List<Stack<(TokenType, string)>>, List<Part>> Parse(string filePath)
     {
-        var lines = File.ReadAllLines(filePath);
+        var lines = File.ReadLines(filePath).ToArray();
         var offset = Array.FindIndex(lines, string.IsNullOrWhiteSpace);
         var tokens = ParseWorkflows(lines, offset);
         var parts = ParseParts(lines, offset);
  
-        return new ValueTuple<List<Stack<Token>>, List<Part>>(tokens.ToList(), parts.ToList());
+        return new ValueTuple<List<Stack<(TokenType, string)>>, List<Part>>(tokens.ToList(), parts.ToList());
     }
 
-    private static List<Part> ParseParts(string[] lines, int offset)
+    private static IEnumerable<Part> ParseParts(string[] lines, int offset)
     {
-        var parts = new ConcurrentBag<Part>();
-        Parallel.ForEach( lines.Skip(offset+1), (line) =>
+        var allParts = new List<Part>();
+        foreach (var line in lines.Skip(offset+1))
         {
-            var match = Regex.Match(line, "x=(\\d+)?,m=(\\d+),a=(\\d+),s=(\\d+)");
-            if (!match.Success)
-            {
-                throw new Exception("Failed to parse parts");
-            }
-
-            var x = Convert.ToInt32(match.Groups[1].Value);
-            var m = Convert.ToInt32(match.Groups[2].Value);
-            var a = Convert.ToInt32(match.Groups[3].Value);
-            var s = Convert.ToInt32(match.Groups[4].Value);
-            parts.Add(new Part(x, m, a, s));
-        });
-
-        return parts.ToList();
+            var parts = line.Substring(1, line.Length-2).Split(",");
+            var values = parts.Select(part => part.Split("=")).Select(p => Convert.ToInt32(p[1])).ToList();
+            allParts.Add(new Part(values[0], values[1], values[2], values[3]));
+        }
+        return allParts;
     }
 
-    private static IEnumerable<Stack<Token>> ParseWorkflows(string[] lines, int offset)
+    private static IEnumerable<Stack<(TokenType, string)>> ParseWorkflows(string[] lines, int offset)
     {
-        var tokens = new List<Stack<Token>>();
-        Parallel.ForEach( lines.Take(offset), (line) =>
-        {
-            lock (tokens)
-            {
-                tokens.Add(Tokenizer.Tokenizer.Tokenize(line));
-            }
-        });
-    
-        return tokens;
+        return lines.Take(offset).Select(Tokenizer.Tokenizer.Tokenize).ToList();
     }
 }
