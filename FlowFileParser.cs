@@ -1,17 +1,15 @@
-using advent_19.Tokenizer;
-
 namespace advent_19;
 
 public static class FlowFileParser
 {
-    public static ValueTuple<List<Stack<(TokenType, string)>>, List<Part>> Parse(string filePath)
+    public static ValueTuple<List<string>, List<Part>> Parse(string filePath)
     {
         var lines = File.ReadLines(filePath).ToArray();
         var offset = Array.FindIndex(lines, string.IsNullOrWhiteSpace);
         var tokens = ParseWorkflows(lines, offset);
         var parts = ParseParts(lines, offset);
  
-        return new ValueTuple<List<Stack<(TokenType, string)>>, List<Part>>(tokens.ToList(), parts.ToList());
+        return new ValueTuple<List<string>, List<Part>>(tokens.ToList(), parts.ToList());
     }
 
     private static IEnumerable<Part> ParseParts(string[] lines, int offset)
@@ -26,8 +24,8 @@ public static class FlowFileParser
         return allParts;
     }
 
-    private static IEnumerable<Stack<(TokenType, string)>> ParseWorkflows(string[] lines, int offset)
+    private static IEnumerable<string> ParseWorkflows(string[] lines, int offset)
     {
-        return lines.Take(offset).Select(Tokenizer.Tokenizer.Tokenize).ToList();
+        return lines.Take(offset).ToList();
     }
 }

@@ -1,121 +1,93 @@
 using System.Diagnostics;
-using advent_19.Tokenizer;
 
 namespace advent_19;
 
-public class FlowFunction(Stack<(TokenType, string)> tokenStack)
+public class FlowFunction
 {
+    private readonly string _rule;
+    private readonly string[] _parts;
+
+    public FlowFunction(string rule)
+    {
+        _rule = rule;
+        var functionName = GetFunctionName();
+        var contentInsideBraces = rule.Substring(functionName.Length + 1, rule.Length-functionName.Length - 2);
+        _parts = contentInsideBraces.Split(",");
+    }
+
     public bool Execute(string name, Part p, Dictionary<string, FlowFunction> functions)
     {
         Debug(name);
-        var clonedStack = new Stack<(TokenType, string)>(new Stack<(TokenType, string)>(tokenStack));
-        
-        while (clonedStack.Count > 0)
+        foreach (var subpart in _parts)
         {
-            var token = clonedStack.Pop();
-            switch (token.Item1)
+            // if a subpart is true we execute the part after :
+            if (subpart.IndexOf(':') > 0)
             {
-                case TokenType.PartS:
-                case TokenType.PartM:
-                case TokenType.PartA:
-                case TokenType.PartX:
-                    var success = ExecutePart(token.Item1, p, clonedStack);
-                    // if value is false we drop the if statement and condition.
-                    if (!success)
-                    {
-                        clonedStack.Pop();
-                        clonedStack.Pop();
-                    }
-                    break;
+                var colonIndex = subpart.IndexOf(':');
+                var cond = subpart[..colonIndex];
+                var afterCond = subpart[(colonIndex + 1)..];
 
-                case TokenType.If:
-                case TokenType.Else:
-                    var tokenAhead = clonedStack.Peek();
-                    if (tokenAhead.Item1 == TokenType.Function)
-                    {
-                        var function = clonedStack.Pop();
-                        return functions[function.Item2].Execute(function.Item2, p, functions);
-                    }
-                    break;
-
-                case TokenType.Accepted:
-                    return true;
-
-                case TokenType.Rejected:
-                    return false;
+                if (EvalCond(cond, p))
+                {
+                    return ExecuteCond(afterCond, p, functions);
+                }
+                continue;
             }
+
+            return ExecuteCond(subpart, p, functions);
+        }
+        return false;
+    }
+
+    private static bool ExecuteCond(string cond, Part p, Dictionary<string, FlowFunction> functions)
+    {
+        if (cond == "A")
+        {
+            return true;
+        } 
+        if (cond == "R")
+        {
+            return false;
+        }
+                    
+        if (functions.TryGetValue(cond, out var function))
+        {
+            return function.Execute(cond, p, functions);
         }
 
         return false;
     }
-
-    public List<(TokenType, int)> FindValues(TokenType type)
+    
+    private static bool EvalCond(string cond, Part p)
     {
-        if (type is not (TokenType.PartX or TokenType.PartM or TokenType.PartA or TokenType.PartS))
+        var operators = new List<string> { ">", "<" };
+        var operatorIndex = operators.FindIndex(cond.Contains);
+        var operatorSymbol = operators[operatorIndex];
+        var parts = cond.Split(operatorSymbol);
+        var partName = parts[0];
+        var number = Convert.ToInt32(parts[1]);
+
+        var value = partName switch
         {
-            throw new InvalidOperationException("Invalid part type");
-        }
-        
-        var clonedStack = new Stack<(TokenType, string)>(new Stack<(TokenType, string)>(tokenStack));
-        var values = new List<(TokenType, int)>();
-
-        while (clonedStack.Count > 0)
-        {
-            var token = clonedStack.Pop();
-
-            if (token.Item1 == type)
-            {
-                var compareToken = clonedStack.Pop();
-                var numberToken = clonedStack.Pop();
-                var toCompare = ToCompare(numberToken);
-
-                values.Add((compareToken.Item1, toCompare));
-            }
-        }
-
-        return values;
-    }
-
-    public string GetFunctionName()
-    {
-        return tokenStack.First().Item2;
-    }
-
-    private static bool ExecutePart(TokenType tokenType, Part part, Stack<(TokenType, string)> stack)
-    {
-        var partValue = tokenType switch
-        {
-            TokenType.PartX => part.X,
-            TokenType.PartM => part.M,
-            TokenType.PartA => part.A,
-            TokenType.PartS => part.S,
+            "x" => p.X,
+            "m" => p.M,
+            "a" => p.A,
+            "s" => p.S,
             _ => throw new ArgumentOutOfRangeException()
         };
 
-        return Compare(stack.Pop(), stack.Pop(), partValue);
+        return operatorSymbol switch
+        {
+            "<" => value < number,
+            ">" => value > number,
+            _ => throw new ArgumentOutOfRangeException()
+        };
+
     }
     
-    private static bool Compare((TokenType, string) compare, (TokenType, string) value, int var)
+    public string GetFunctionName()
     {
-        var toCompare = ToCompare(value);
-
-        return compare.Item1 switch
-        {
-            TokenType.SmallerThen => var < toCompare,
-            TokenType.BiggerThen => var > toCompare,
-            _ => throw new InvalidOperationException("Unrecognized token")
-        };
-    }
-
-    private static int ToCompare((TokenType, string) value)
-    {
-        var conversionSuccess = int.TryParse(value.Item2, out var toCompare);
-        if (!conversionSuccess)
-        {
-            throw new InvalidCastException("value not a number: " + value);
-        }
-
-        return toCompare;
+        return _rule.Split("{")[0];
     }
 
     [Conditional("DEBUG")]
